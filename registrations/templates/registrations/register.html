@@ -6,20 +6,27 @@
   <div class="form-shell">
     <aside class="form-story">
       <p class="eyebrow">Краски осени</p>
-      <h1>Ваше место<br>в команде</h1>
-      <p>Заполните короткую форму. В команде может быть не более 10 участников.</p>
+      <h1>Ваш формат<br>участия</h1>
+      <p>19 сентября, 10:00–14:00<br>ФОК «Узловая», ул. Тургенева, 21</p>
     </aside>
     <div class="form-card">
-      <a class="back-link" href="{% url 'home' %}#teams">← Вернуться к командам</a>
+      <a class="back-link" href="{% url 'home' %}#formats">← Вернуться к форматам</a>
       <h2>Регистрация</h2>
-      <p>Поля соответствуют исходной форме формирования команд.</p>
+      <p>Выберите один из трёх форматов и укажите контактные данные.</p>
       <form method="post" novalidate>
         {% csrf_token %}
         {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
-        <div class="field">{{ form.team.label_tag }}{{ form.team.errors }}{{ form.team }}</div>
         <div class="field">{{ form.full_name.label_tag }}{{ form.full_name.errors }}{{ form.full_name }}</div>
-        <fieldset class="field"><legend>{{ form.participant_type.label }}</legend>{{ form.participant_type.errors }}<div class="radio-row">{% for radio in form.participant_type %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
-        <div class="field" data-child-age>{{ form.child_age.label_tag }}{{ form.child_age.errors }}{{ form.child_age }}<p class="help-text">Только для детей младше 14 лет.</p></div>
+        <div class="field">{{ form.organization_unit.label_tag }}{{ form.organization_unit.errors }}{{ form.organization_unit }}</div>
+        <div class="field">{{ form.phone.label_tag }}{{ form.phone.errors }}{{ form.phone }}</div>
+        <fieldset class="field"><legend>{{ form.participation_format.label }}</legend>{{ form.participation_format.errors }}<div class="radio-stack">{% for radio in form.participation_format %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <div data-game-fields>
+          <div class="field">{{ form.team.label_tag }}{{ form.team.errors }}{{ form.team }}</div>
+          <fieldset class="field"><legend>{{ form.participant_type.label }}</legend>{{ form.participant_type.errors }}<div class="radio-row">{% for radio in form.participant_type %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+          <div class="field" data-child-age>{{ form.child_age.label_tag }}{{ form.child_age.errors }}{{ form.child_age }}<p class="help-text">Только для детей младше 14 лет.</p></div>
+        </div>
+        <fieldset class="field"><legend>{{ form.companions.label }}</legend>{{ form.companions.errors }}<div class="radio-stack">{% for radio in form.companions %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <div class="field" data-children-details>{{ form.children_details.label_tag }}{{ form.children_details.errors }}{{ form.children_details }}</div>
         <button class="button submit-button" type="submit">Зарегистрироваться</button>
       </form>
     </div>

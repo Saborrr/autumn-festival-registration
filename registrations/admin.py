@@ -24,14 +24,17 @@ class TeamAdmin(admin.ModelAdmin):
 class RegistrationAdmin(admin.ModelAdmin):
     list_display = (
         "full_name",
+        "participation_format",
         "team",
+        "organization_unit",
+        "phone",
         "participant_type",
         "child_age",
         "status",
         "created_at",
     )
-    list_filter = ("team", "participant_type", "status")
-    search_fields = ("full_name",)
+    list_filter = ("participation_format", "team", "participant_type", "status")
+    search_fields = ("full_name", "organization_unit", "phone")
     list_select_related = ("team",)
     date_hierarchy = "created_at"
 

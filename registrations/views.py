@@ -38,21 +38,30 @@ def home(request):
 
 
 def register(request):
-    initial = {"team": request.GET.get("team")}
+    initial = {
+        "team": request.GET.get("team"),
+        "participation_format": request.GET.get(
+            "format", Registration.ParticipationFormat.GAME
+        ),
+    }
     form = RegistrationForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            team = Team.objects.select_for_update().get(pk=form.cleaned_data["team"].pk)
-            occupied = team.registrations.filter(
-                status=Registration.Status.ACTIVE
-            ).count()
-            if occupied >= team.capacity:
-                form.add_error("team", "В этой команде уже нет свободных мест.")
-            else:
-                registration = form.save(commit=False)
-                registration.team = team
-                registration.save()
-                return redirect("registration_success")
+        registration = form.save(commit=False)
+        if registration.participation_format == Registration.ParticipationFormat.GAME:
+            with transaction.atomic():
+                team = Team.objects.select_for_update().get(pk=registration.team_id)
+                occupied = team.registrations.filter(
+                    status=Registration.Status.ACTIVE
+                ).count()
+                if occupied >= team.capacity:
+                    form.add_error("team", "В этой команде уже нет свободных мест.")
+                else:
+                    registration.team = team
+                    registration.save()
+                    return redirect("registration_success")
+        else:
+            registration.save()
+            return redirect("registration_success")
     return render(request, "registrations/register.html", {"form": form})
 
 
@@ -91,7 +100,7 @@ def moderator_toggle(request, registration_id):
         )
         if registration.status == Registration.Status.ACTIVE:
             registration.status = Registration.Status.CANCELLED
-        else:
+        elif registration.team_id:
             team = Team.objects.select_for_update().get(pk=registration.team_id)
             occupied = team.registrations.filter(
                 status=Registration.Status.ACTIVE
@@ -99,6 +108,8 @@ def moderator_toggle(request, registration_id):
             if occupied >= team.capacity:
                 messages.error(request, "Команда заполнена — восстановить участника нельзя.")
                 return redirect("moderator_dashboard")
+            registration.status = Registration.Status.ACTIVE
+        else:
             registration.status = Registration.Status.ACTIVE
         registration.save(update_fields=("status", "updated_at"))
     return redirect("moderator_dashboard")

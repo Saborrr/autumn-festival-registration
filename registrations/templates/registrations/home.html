@@ -7,10 +7,10 @@
   <div class="hero-content">
     <p class="eyebrow">Спорт · семья · одна команда</p>
     <h1>Соберём вместе<br><em>краски осени</em></h1>
-    <p class="hero-lead">Выберите команду и зарегистрируйте взрослого или ребёнка на спортивно-семейный праздник.</p>
-    <a class="button button-primary" href="#teams">Выбрать команду <span aria-hidden="true">↓</span></a>
+    <p class="hero-lead">Выберите формат участия: играйте в команде, болейте за друзей или представьте домашнюю выпечку.</p>
+    <a class="button button-primary" href="#formats">Выбрать формат <span aria-hidden="true">↓</span></a>
   </div>
-  <div class="hero-note"><strong>10 команд</strong><span>до 10 участников в каждой</span></div>
+  <div class="hero-note"><strong>19 сентября · 10:00–14:00</strong><span>ФОК «Узловая», ул. Тургенева, 21</span></div>
 </section>
 
 <section class="intro section-shell" aria-labelledby="how-title">
@@ -19,16 +19,30 @@
     <h2 id="how-title">Три простых шага</h2>
   </div>
   <ol class="steps">
-    <li><span>01</span><div><strong>Выберите команду</strong><p>Смотрите свободные места в реальном времени.</p></div></li>
+    <li><span>01</span><div><strong>Выберите формат</strong><p>Большая игра, поддержка команд или конкурс пирогов.</p></div></li>
     <li><span>02</span><div><strong>Заполните данные</strong><p>ФИО и категория участника — взрослый или ребёнок.</p></div></li>
     <li><span>03</span><div><strong>Готово</strong><p>Место закрепится сразу после отправки формы.</p></div></li>
   </ol>
 </section>
 
+<section class="formats-section" id="formats" aria-labelledby="formats-title">
+  <div class="section-shell">
+    <div class="section-heading">
+      <div><p class="eyebrow ink">Три способа быть с нами</p><h2 id="formats-title">Выберите формат участия</h2></div>
+      <p>Каждая регистрация относится к одной категории. Для участия в игре после выбора формата нужно подобрать команду.</p>
+    </div>
+    <div class="format-grid">
+      <article class="format-card format-game"><span class="format-icon" aria-hidden="true">🏆</span><h3>Участник «Большой игры»</h3><p>Командный маршрут с испытаниями на меткость, ловкость, скорость и слаженность. В команде 10 человек, включая 2 детей младше 14 лет.</p><a class="team-link" href="#teams">Выбрать команду <span aria-hidden="true">↓</span></a></article>
+      <article class="format-card format-support"><span class="format-icon" aria-hidden="true">📣</span><h3>Болельщик</h3><p>Приходите поддержать команды, участвовать в активностях, фотографироваться, пробовать угощения и создавать настроение.</p><a class="team-link" href="{% url 'register' %}?format=supporter">Зарегистрироваться <span aria-hidden="true">→</span></a></article>
+      <article class="format-card format-pie"><span class="format-icon" aria-hidden="true">🥧</span><h3>Конкурс «Счастье в пирогах»</h3><p>Представьте домашнюю выпечку на осенней ярмарке. К участию приглашаются сотрудники, семьи и команды.</p><a class="team-link" href="{% url 'register' %}?format=pie">Зарегистрироваться <span aria-hidden="true">→</span></a></article>
+    </div>
+  </div>
+</section>
+
 <section class="teams-section" id="teams" aria-labelledby="teams-title">
   <div class="section-shell">
     <div class="section-heading">
-      <div><p class="eyebrow ink">Формирование составов</p><h2 id="teams-title">Найдите свою команду</h2></div>
+      <div><p class="eyebrow ink">Участники «Большой игры»</p><h2 id="teams-title">Найдите свою команду</h2></div>
       <p>В каждой команде желательно предусмотреть двух детей младше 14 лет.</p>
     </div>
     <div class="team-grid">

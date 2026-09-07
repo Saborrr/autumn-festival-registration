@@ -13,6 +13,10 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Краски осени")
         self.assertEqual(len(response.context["teams"]), 10)
         self.assertContains(response, "0 из 10")
+        self.assertContains(response, "19 сентября")
+        self.assertContains(response, "Участник «Большой игры»")
+        self.assertContains(response, "Болельщик")
+        self.assertContains(response, "Конкурс «Счастье в пирогах»")
 
     def test_home_shows_active_participants_in_their_team(self):
         team = Team.objects.get(number=1)
@@ -39,8 +43,13 @@ class HomePageTests(TestCase):
             {
                 "team": team.pk,
                 "full_name": "Мария Иванова",
+                "organization_unit": "ЭФКО, производство",
+                "phone": "+7 900 000-00-00",
+                "participation_format": "game",
                 "participant_type": "adult",
                 "child_age": "",
+                "companions": "alone",
+                "children_details": "",
             },
         )
 
@@ -61,14 +70,67 @@ class HomePageTests(TestCase):
             {
                 "team": team.pk,
                 "full_name": "Одиннадцатый Участник",
+                "organization_unit": "ЭФКО, производство",
+                "phone": "+7 900 000-00-00",
+                "participation_format": "game",
                 "participant_type": "adult",
                 "child_age": "",
+                "companions": "alone",
+                "children_details": "",
             },
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "В этой команде уже нет свободных мест")
         self.assertEqual(team.registrations.count(), 10)
+
+    def test_registration_page_uses_category_neutral_copy(self):
+        response = self.client.get(reverse("register") + "?format=pie")
+
+        self.assertContains(response, "Ваш формат")
+        self.assertContains(response, "Вернуться к форматам")
+        self.assertNotContains(response, "Ваше место<br>в команде", html=True)
+
+    def test_supporter_can_register_without_a_team(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Елена Соколова",
+                "organization_unit": "ЭФКО, офис",
+                "phone": "+7 953 111-22-33",
+                "participation_format": "supporter",
+                "participant_type": "",
+                "child_age": "",
+                "companions": "adult_relative",
+                "children_details": "",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registration_success"))
+        registration = Team.objects.first().registrations.model.objects.get(
+            full_name="Елена Соколова"
+        )
+        self.assertEqual(registration.participation_format, "supporter")
+        self.assertIsNone(registration.team)
+
+    def test_pie_contest_is_a_separate_registration_category(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Ольга Пирогова",
+                "organization_unit": "ЭФКО, логистика",
+                "phone": "+7 953 444-55-66",
+                "participation_format": "pie",
+                "participant_type": "",
+                "child_age": "",
+                "companions": "children",
+                "children_details": "2 ребёнка, 6 и 9 лет",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registration_success"))
 
 
 class ModeratorDashboardTests(TestCase):

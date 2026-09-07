@@ -16,6 +16,11 @@ class Team(models.Model):
 
 
 class Registration(models.Model):
+    class ParticipationFormat(models.TextChoices):
+        GAME = "game", "Участник «Большой игры»"
+        SUPPORTER = "supporter", "Болельщик"
+        PIE = "pie", "Конкурс «Счастье в пирогах»"
+
     class ParticipantType(models.TextChoices):
         ADULT = "adult", "Взрослый"
         CHILD = "child", "Ребёнок"
@@ -24,12 +29,45 @@ class Registration(models.Model):
         ACTIVE = "active", "Участвует"
         CANCELLED = "cancelled", "Отменена"
 
-    team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name="registrations")
+    class Companions(models.TextChoices):
+        ALONE = "alone", "Приду один (одна)"
+        ADULT_RELATIVE = "adult_relative", "Со мной будет 1 взрослый родственник"
+        CHILDREN = "children", "Со мной будет ребёнок (дети)"
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.PROTECT,
+        related_name="registrations",
+        null=True,
+        blank=True,
+    )
     full_name = models.CharField("ФИО участника", max_length=200)
+    organization_unit = models.CharField(
+        "Предприятие, подразделение", max_length=200, blank=True, default=""
+    )
+    phone = models.CharField("Телефон для связи", max_length=40, blank=True, default="")
+    participation_format = models.CharField(
+        "Форма участия",
+        max_length=12,
+        choices=ParticipationFormat.choices,
+        default=ParticipationFormat.GAME,
+    )
     participant_type = models.CharField(
-        "Категория", max_length=10, choices=ParticipantType.choices
+        "Возрастная категория",
+        max_length=10,
+        choices=ParticipantType.choices,
+        blank=True,
     )
     child_age = models.PositiveSmallIntegerField("Возраст ребёнка", null=True, blank=True)
+    companions = models.CharField(
+        "Кто придёт с вами",
+        max_length=20,
+        choices=Companions.choices,
+        default=Companions.ALONE,
+    )
+    children_details = models.CharField(
+        "Возраст и количество детей", max_length=200, blank=True, default=""
+    )
     status = models.CharField(
         "Статус", max_length=10, choices=Status.choices, default=Status.ACTIVE
     )
@@ -47,6 +85,14 @@ class Registration(models.Model):
     def clean(self):
         super().clean()
         errors = {}
+        if self.participation_format == self.ParticipationFormat.GAME and not self.team_id:
+            errors["team"] = "Выберите команду."
+        if self.participation_format == self.ParticipationFormat.GAME and not self.participant_type:
+            errors["participant_type"] = "Укажите возрастную категорию участника."
+        if self.participation_format != self.ParticipationFormat.GAME and self.team_id:
+            errors["team"] = "Команда выбирается только для участника «Большой игры»."
+        if self.participation_format != self.ParticipationFormat.GAME and self.participant_type:
+            errors["participant_type"] = "Возрастная категория нужна только участнику игры."
         if self.participant_type == self.ParticipantType.CHILD:
             if self.child_age is None:
                 errors["child_age"] = "Укажите возраст ребёнка."
@@ -54,5 +100,7 @@ class Registration(models.Model):
                 errors["child_age"] = "Для этой категории ребёнок должен быть младше 14 лет."
         elif self.child_age is not None:
             errors["child_age"] = "Возраст указывается только для ребёнка."
+        if self.companions == self.Companions.CHILDREN and not self.children_details.strip():
+            errors["children_details"] = "Укажите количество и возраст детей."
         if errors:
             raise ValidationError(errors)

@@ -32,3 +32,27 @@ class RegistrationValidationTests(TestCase):
 
         with self.assertRaisesMessage(ValidationError, "Возраст указывается только для ребёнка"):
             registration.full_clean()
+
+    def test_game_participant_requires_a_team(self):
+        registration = Registration(
+            full_name="Иван Петров",
+            organization_unit="ЭФКО",
+            phone="+7 900 000-00-00",
+            participation_format="game",
+            participant_type="adult",
+            companions="alone",
+        )
+
+        with self.assertRaisesMessage(ValidationError, "Выберите команду"):
+            registration.full_clean()
+
+    def test_supporter_does_not_require_a_team(self):
+        registration = Registration(
+            full_name="Иван Петров",
+            organization_unit="ЭФКО",
+            phone="+7 900 000-00-00",
+            participation_format="supporter",
+            companions="alone",
+        )
+
+        registration.full_clean()

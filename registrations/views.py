@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -22,6 +22,14 @@ def home(request):
                 registrations__participant_type=Registration.ParticipantType.CHILD,
             ),
         ),
+    ).prefetch_related(
+        Prefetch(
+            "registrations",
+            queryset=Registration.objects.filter(
+                status=Registration.Status.ACTIVE
+            ).order_by("created_at"),
+            to_attr="active_participants",
+        )
     )
     teams = list(teams)
     for team in teams:

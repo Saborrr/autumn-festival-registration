@@ -39,6 +39,14 @@
         <div class="occupancy"><strong>{{ team.active_count }} из {{ team.capacity }}</strong><span>{% if team.active_count >= team.capacity %}мест нет{% else %}участников{% endif %}</span></div>
         <div class="progress" role="progressbar" aria-label="Заполненность команды {{ team.number }}" aria-valuenow="{{ team.active_count }}" aria-valuemin="0" aria-valuemax="{{ team.capacity }}"><span style="width:{% widthratio team.active_count team.capacity 100 %}%"></span></div>
         <div class="team-meta"><span>Детей: {{ team.child_count }}</span><span>Свободно: {{ team.free_count }}</span></div>
+        <div class="team-members">
+          <h4>Уже в команде</h4>
+          {% if team.active_participants %}
+          <ul>{% for participant in team.active_participants %}<li>{{ participant.full_name }}</li>{% endfor %}</ul>
+          {% else %}
+          <p>Пока никто не записался — будьте первым.</p>
+          {% endif %}
+        </div>
         {% if team.active_count < team.capacity %}
         <a class="team-link" href="{% url 'register' %}?team={{ team.pk }}">Вступить в команду <span aria-hidden="true">→</span></a>
         {% else %}<span class="team-link disabled">Команда заполнена</span>{% endif %}

@@ -14,6 +14,23 @@ class HomePageTests(TestCase):
         self.assertEqual(len(response.context["teams"]), 10)
         self.assertContains(response, "0 из 10")
 
+    def test_home_shows_active_participants_in_their_team(self):
+        team = Team.objects.get(number=1)
+        team.registrations.create(
+            full_name="Мария Иванова", participant_type="adult"
+        )
+        team.registrations.create(
+            full_name="Павел Орлов",
+            participant_type="adult",
+            status="cancelled",
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "Уже в команде")
+        self.assertContains(response, "Мария Иванова")
+        self.assertNotContains(response, "Павел Орлов")
+
     def test_valid_registration_reserves_a_place(self):
         team = Team.objects.get(number=1)
 

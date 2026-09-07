@@ -1,0 +1,7 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+  <li><a href="{% url 'export_registrations_xlsx' %}">Выгрузить Excel</a></li>
+  <li><a href="{% url 'export_registrations_docx' %}">Выгрузить Word</a></li>
+  {{ block.super }}
+{% endblock %}

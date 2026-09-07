@@ -22,6 +22,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 @admin.register(Registration)
 class RegistrationAdmin(admin.ModelAdmin):
+    change_list_template = "admin/registrations/registration/change_list.html"
     list_display = (
         "full_name",
         "participation",

@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import RegistrationForm
+from .exports import docx_response, xlsx_response
 from .models import Registration, Team
 
 
@@ -70,6 +71,16 @@ def register(request):
 
 def registration_success(request):
     return render(request, "registrations/success.html")
+
+
+@staff_member_required(login_url="login")
+def export_registrations_xlsx(request):
+    return xlsx_response()
+
+
+@staff_member_required(login_url="login")
+def export_registrations_docx(request):
+    return docx_response()
 
 
 @staff_member_required(login_url="login")

@@ -1,6 +1,10 @@
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from docx import Document
+from openpyxl import load_workbook
 
 from registrations.models import Registration, Team
 
@@ -16,8 +20,9 @@ class HomePageTests(TestCase):
         self.assertContains(response, "19 сентября")
         self.assertContains(
             response,
-            "За более подробной информацией обращайтесь к лидерам рабочего актива (ЛРА)",
+            "За подробной информацией обращайтесь к ЛРА",
         )
+        self.assertNotContains(response, "За более подробной информацией")
         self.assertContains(response, "Участник «Большой игры»")
         self.assertContains(response, "Болельщик")
         self.assertContains(response, "Конкурс «Счастье в пирогах»")
@@ -390,3 +395,76 @@ class ModeratorDashboardTests(TestCase):
 
         self.assertNotContains(response, 'value="full_name"')
         self.assertNotContains(response, 'value="phone"')
+
+
+class RegistrationExportTests(TestCase):
+    def setUp(self):
+        self.moderator = get_user_model().objects.create_user(
+            username="export-moderator", password="strong-password", is_staff=True
+        )
+        self.registration = Team.objects.get(number=2).registrations.create(
+            full_name="Анна Экспортова",
+            organization_unit="Производство",
+            phone="+7 900 123-45-67",
+            participation_format="game",
+            participates_in_pie=True,
+            participant_type="adult",
+            companions="alone",
+        )
+
+    def test_exports_require_staff_access(self):
+        for name in ("export_registrations_xlsx", "export_registrations_docx"):
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertRedirects(response, f'{reverse("login")}?next={reverse(name)}')
+
+    def test_staff_can_download_excel_registration_list(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.get(reverse("export_registrations_xlsx"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("registrations.xlsx", response["Content-Disposition"])
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        workbook = load_workbook(BytesIO(response.content), read_only=True)
+        rows = list(workbook["Регистрации"].values)
+        self.assertEqual(rows[0][1], "Участник")
+        self.assertEqual(rows[1][1], "Анна Экспортова")
+        self.assertIn("Счастье в пирогах", rows[1][2])
+
+    def test_staff_can_download_word_registration_list(self):
+        self.client.force_login(self.moderator)
+
+        response = self.client.get(reverse("export_registrations_docx"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.assertIn("registrations.docx", response["Content-Disposition"])
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        document = Document(BytesIO(response.content))
+        cells = [cell.text for table in document.tables for row in table.rows for cell in row.cells]
+        self.assertIn("Анна Экспортова", cells)
+        self.assertTrue(any("Счастье в пирогах" in cell for cell in cells))
+
+    def test_export_buttons_are_available_in_moderator_and_admin_panels(self):
+        self.client.force_login(self.moderator)
+        moderator_response = self.client.get(reverse("moderator_dashboard"))
+        self.assertContains(moderator_response, reverse("export_registrations_xlsx"))
+        self.assertContains(moderator_response, reverse("export_registrations_docx"))
+
+        administrator = get_user_model().objects.create_superuser(
+            username="export-admin", password="strong-password"
+        )
+        self.client.force_login(administrator)
+        admin_response = self.client.get(
+            reverse("admin:registrations_registration_changelist")
+        )
+        self.assertContains(admin_response, reverse("export_registrations_xlsx"))
+        self.assertContains(admin_response, reverse("export_registrations_docx"))

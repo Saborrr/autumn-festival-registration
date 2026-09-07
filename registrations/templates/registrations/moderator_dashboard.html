@@ -2,7 +2,7 @@
 {% block title %}Панель модератора — Краски осени{% endblock %}
 {% block content %}
 <section class="dashboard">
-  <header class="dashboard-header"><div><p class="eyebrow ink">Рабочее пространство</p><h1>Панель модератора</h1></div><div class="dashboard-actions"><a class="button button-secondary" href="{% url 'home' %}">Открыть сайт</a>{% if user.is_superuser %}<a class="button button-primary" href="{% url 'admin:index' %}">Администратор</a>{% endif %}</div></header>
+  <header class="dashboard-header"><div><p class="eyebrow ink">Рабочее пространство</p><h1>Панель модератора</h1></div><div class="dashboard-actions"><a class="button export-button" href="{% url 'export_registrations_xlsx' %}">Excel</a><a class="button export-button" href="{% url 'export_registrations_docx' %}">Word</a><a class="button button-secondary" href="{% url 'home' %}">Открыть сайт</a>{% if user.is_superuser %}<a class="button button-primary" href="{% url 'admin:index' %}">Администратор</a>{% endif %}</div></header>
   <div class="stats-strip"><div class="stat"><strong>{{ active_total }}</strong><span>активных участников</span></div><div class="stat"><strong>{{ children_total }}</strong><span>детей младше 14 лет</span></div><div class="stat"><strong>{{ free_total }}</strong><span>свободных мест в командах</span></div></div>
   <div class="filters-bar">
     <form method="get" class="filters-form">

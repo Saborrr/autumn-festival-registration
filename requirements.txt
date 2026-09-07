@@ -1,2 +1,4 @@
 Django==6.0.8
 gunicorn==23.0.0
+openpyxl==3.1.5
+python-docx==1.2.0

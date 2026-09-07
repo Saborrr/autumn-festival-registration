@@ -1,0 +1,50 @@
+{% extends 'registrations/base.html' %}
+{% load static %}
+{% block content %}
+<section class="hero">
+  <img class="hero-image" src="{% static 'registrations/img/autumn-park.jpg' %}" alt="Осенний парк в золотых и багряных красках">
+  <div class="hero-shade"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Спорт · семья · одна команда</p>
+    <h1>Соберём вместе<br><em>краски осени</em></h1>
+    <p class="hero-lead">Выберите команду и зарегистрируйте взрослого или ребёнка на спортивно-семейный праздник.</p>
+    <a class="button button-primary" href="#teams">Выбрать команду <span aria-hidden="true">↓</span></a>
+  </div>
+  <div class="hero-note"><strong>10 команд</strong><span>до 10 участников в каждой</span></div>
+</section>
+
+<section class="intro section-shell" aria-labelledby="how-title">
+  <div>
+    <p class="eyebrow ink">Как участвовать</p>
+    <h2 id="how-title">Три простых шага</h2>
+  </div>
+  <ol class="steps">
+    <li><span>01</span><div><strong>Выберите команду</strong><p>Смотрите свободные места в реальном времени.</p></div></li>
+    <li><span>02</span><div><strong>Заполните данные</strong><p>ФИО и категория участника — взрослый или ребёнок.</p></div></li>
+    <li><span>03</span><div><strong>Готово</strong><p>Место закрепится сразу после отправки формы.</p></div></li>
+  </ol>
+</section>
+
+<section class="teams-section" id="teams" aria-labelledby="teams-title">
+  <div class="section-shell">
+    <div class="section-heading">
+      <div><p class="eyebrow ink">Формирование составов</p><h2 id="teams-title">Найдите свою команду</h2></div>
+      <p>В каждой команде желательно предусмотреть двух детей младше 14 лет.</p>
+    </div>
+    <div class="team-grid">
+      {% for team in teams %}
+      <article class="team-card {% if team.active_count >= team.capacity %}is-full{% endif %}">
+        <div class="team-top"><span class="team-number">{{ team.number|stringformat:'02d' }}</span><span class="status-dot"></span></div>
+        <h3>Команда {{ team.number }}</h3>
+        <div class="occupancy"><strong>{{ team.active_count }} из {{ team.capacity }}</strong><span>{% if team.active_count >= team.capacity %}мест нет{% else %}участников{% endif %}</span></div>
+        <div class="progress" role="progressbar" aria-label="Заполненность команды {{ team.number }}" aria-valuenow="{{ team.active_count }}" aria-valuemin="0" aria-valuemax="{{ team.capacity }}"><span style="width:{% widthratio team.active_count team.capacity 100 %}%"></span></div>
+        <div class="team-meta"><span>Детей: {{ team.child_count }}</span><span>Свободно: {{ team.free_count }}</span></div>
+        {% if team.active_count < team.capacity %}
+        <a class="team-link" href="{% url 'register' %}?team={{ team.pk }}">Вступить в команду <span aria-hidden="true">→</span></a>
+        {% else %}<span class="team-link disabled">Команда заполнена</span>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

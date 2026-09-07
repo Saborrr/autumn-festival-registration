@@ -1,0 +1,29 @@
+{% extends 'registrations/base.html' %}
+{% load static %}
+{% block title %}Регистрация — Краски осени{% endblock %}
+{% block content %}
+<section class="form-page">
+  <div class="form-shell">
+    <aside class="form-story">
+      <p class="eyebrow">Краски осени</p>
+      <h1>Ваше место<br>в команде</h1>
+      <p>Заполните короткую форму. В команде может быть не более 10 участников.</p>
+    </aside>
+    <div class="form-card">
+      <a class="back-link" href="{% url 'home' %}#teams">← Вернуться к командам</a>
+      <h2>Регистрация</h2>
+      <p>Поля соответствуют исходной форме формирования команд.</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+        <div class="field">{{ form.team.label_tag }}{{ form.team.errors }}{{ form.team }}</div>
+        <div class="field">{{ form.full_name.label_tag }}{{ form.full_name.errors }}{{ form.full_name }}</div>
+        <fieldset class="field"><legend>{{ form.participant_type.label }}</legend>{{ form.participant_type.errors }}<div class="radio-row">{% for radio in form.participant_type %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <div class="field" data-child-age>{{ form.child_age.label_tag }}{{ form.child_age.errors }}{{ form.child_age }}<p class="help-text">Только для детей младше 14 лет.</p></div>
+        <button class="button submit-button" type="submit">Зарегистрироваться</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'registrations/js/form.js' %}"></script>{% endblock %}

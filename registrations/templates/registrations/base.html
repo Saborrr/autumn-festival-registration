@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#7a2e16">
+  <meta name="description" content="Регистрация команд на спортивно-семейный праздник «Краски осени»">
+  <link rel="icon" href="{% static 'registrations/img/favicon.svg' %}" type="image/svg+xml">
+  <title>{% block title %}Краски осени{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'registrations/css/site.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#content">К содержанию</a>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}" aria-label="Краски осени — главная">
+      <span class="brand-mark" aria-hidden="true">КО</span>
+      <span><strong>Краски осени</strong><small>спортивно-семейный праздник</small></span>
+    </a>
+    <nav aria-label="Основная навигация">
+      {% if user.is_staff %}<a href="{% url 'moderator_dashboard' %}">Панель</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'admin:index' %}">Администрирование</a>{% endif %}
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button">Выйти</button></form>
+      {% else %}<a href="{% url 'login' %}">Организаторам</a>{% endif %}
+    </nav>
+  </header>
+  <main id="content">
+    {% if messages %}<div class="messages" role="status">{% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>Спортивно-семейный праздник «Краски осени»</p>
+    <p class="photo-credit">Фото: <a href="https://commons.wikimedia.org/wiki/File:Confederation_Park_autumn.jpg" rel="noopener">SimonP / Wikimedia Commons</a></p>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

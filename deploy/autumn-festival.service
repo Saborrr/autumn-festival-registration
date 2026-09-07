@@ -1,0 +1,23 @@
+[Unit]
+Description=Autumn Festival registration site
+After=network.target
+
+[Service]
+Type=simple
+User=alex
+Group=alex
+WorkingDirectory=/opt/autumn-festival
+EnvironmentFile=/etc/autumn-festival.env
+ExecStart=/opt/autumn-festival/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8010 --workers 2 --timeout 30 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/autumn-festival
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

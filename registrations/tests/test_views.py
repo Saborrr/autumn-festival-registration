@@ -14,6 +14,10 @@ class HomePageTests(TestCase):
         self.assertEqual(len(response.context["teams"]), 10)
         self.assertContains(response, "0 из 10")
         self.assertContains(response, "19 сентября")
+        self.assertContains(
+            response,
+            "За более подробной информацией обращайтесь к лидерам рабочего актива (ЛРА)",
+        )
         self.assertContains(response, "Участник «Большой игры»")
         self.assertContains(response, "Болельщик")
         self.assertContains(response, "Конкурс «Счастье в пирогах»")
@@ -50,7 +54,7 @@ class HomePageTests(TestCase):
                 "full_name": "Мария Иванова",
                 "organization_unit": "ЭФКО, производство",
                 "phone": "+7 900 000-00-00",
-                "participation_format": "game",
+                "activities": ["game"],
                 "participant_type": "adult",
                 "child_age": "",
                 "companions": "alone",
@@ -77,7 +81,7 @@ class HomePageTests(TestCase):
                 "full_name": "Одиннадцатый Участник",
                 "organization_unit": "ЭФКО, производство",
                 "phone": "+7 900 000-00-00",
-                "participation_format": "game",
+                "activities": ["game"],
                 "participant_type": "adult",
                 "child_age": "",
                 "companions": "alone",
@@ -104,7 +108,7 @@ class HomePageTests(TestCase):
                 "full_name": "Елена Соколова",
                 "organization_unit": "ЭФКО, офис",
                 "phone": "+7 953 111-22-33",
-                "participation_format": "supporter",
+                "activities": ["supporter"],
                 "participant_type": "",
                 "child_age": "",
                 "companions": "adult_relative",
@@ -127,7 +131,7 @@ class HomePageTests(TestCase):
                 "full_name": "Ольга Пирогова",
                 "organization_unit": "ЭФКО, логистика",
                 "phone": "+7 953 444-55-66",
-                "participation_format": "pie",
+                "activities": ["pie"],
                 "participant_type": "",
                 "child_age": "",
                 "companions": "children",
@@ -136,9 +140,99 @@ class HomePageTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("registration_success"))
+        registration = Registration.objects.get(full_name="Ольга Пирогова")
+        self.assertTrue(registration.participates_in_pie)
+
+    def test_game_participant_can_also_enter_pie_contest(self):
+        team = Team.objects.get(number=2)
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": team.pk,
+                "full_name": "Иван Игров",
+                "organization_unit": "ТПК",
+                "phone": "+7 900 111-22-33",
+                "activities": ["game", "pie"],
+                "participant_type": "adult",
+                "child_age": "",
+                "companions": "alone",
+                "children_details": "",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registration_success"))
+        registration = Registration.objects.get(full_name="Иван Игров")
+        self.assertEqual(registration.participation_format, "game")
+        self.assertTrue(registration.participates_in_pie)
+        self.assertEqual(registration.team, team)
+
+    def test_supporter_can_also_enter_pie_contest(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Анна Болельщикова",
+                "organization_unit": "УК",
+                "phone": "+7 900 222-33-44",
+                "activities": ["supporter", "pie"],
+                "participant_type": "",
+                "child_age": "",
+                "companions": "alone",
+                "children_details": "",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registration_success"))
+        registration = Registration.objects.get(full_name="Анна Болельщикова")
+        self.assertEqual(registration.participation_format, "supporter")
+        self.assertTrue(registration.participates_in_pie)
+        self.assertIsNone(registration.team)
+
+    def test_game_participant_cannot_also_be_supporter(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": Team.objects.get(number=2).pk,
+                "full_name": "Неверный Выбор",
+                "organization_unit": "УК",
+                "phone": "+7 900 333-44-55",
+                "activities": ["game", "supporter"],
+                "participant_type": "adult",
+                "child_age": "",
+                "companions": "alone",
+                "children_details": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Нельзя одновременно выбрать участие в «Большой игре» и роль болельщика",
+        )
+        self.assertFalse(Registration.objects.filter(full_name="Неверный Выбор").exists())
 
 
 class ModeratorDashboardTests(TestCase):
+    def test_dashboard_displays_and_filters_combined_pie_participation(self):
+        moderator = get_user_model().objects.create_user(
+            username="combined-moderator", password="strong-password", is_staff=True
+        )
+        self.client.force_login(moderator)
+        combined = Team.objects.get(number=1).registrations.create(
+            full_name="Игрок и пекарь",
+            participation_format="game",
+            participates_in_pie=True,
+            participant_type="adult",
+        )
+
+        response = self.client.get(reverse("moderator_dashboard"), {"format": "pie"})
+
+        self.assertEqual(list(response.context["registrations"]), [combined])
+        self.assertContains(
+            response,
+            "Участник «Большой игры» + Конкурс «Счастье в пирогах»",
+        )
+
     def test_dashboard_requires_staff_and_shows_registrations(self):
         team = Team.objects.get(number=3)
         team.registrations.create(

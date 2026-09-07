@@ -38,11 +38,14 @@ def home(request):
 
 
 def register(request):
+    selected_format = request.GET.get("format", Registration.ParticipationFormat.GAME)
+    if selected_format not in Registration.ParticipationFormat.values:
+        selected_format = Registration.ParticipationFormat.GAME
+    if request.GET.get("team"):
+        selected_format = Registration.ParticipationFormat.GAME
     initial = {
         "team": request.GET.get("team"),
-        "participation_format": request.GET.get(
-            "format", Registration.ParticipationFormat.GAME
-        ),
+        "activities": [selected_format],
     }
     form = RegistrationForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
@@ -93,7 +96,12 @@ def moderator_dashboard(request):
     valid_formats = {value for value, _ in Registration.ParticipationFormat.choices}
     valid_companions = {value for value, _ in Registration.Companions.choices}
     valid_statuses = {value for value, _ in Registration.Status.choices}
-    if filters["format"] in valid_formats:
+    if filters["format"] == Registration.ParticipationFormat.PIE:
+        registrations = registrations.filter(
+            Q(participation_format=Registration.ParticipationFormat.PIE)
+            | Q(participates_in_pie=True)
+        )
+    elif filters["format"] in valid_formats:
         registrations = registrations.filter(
             participation_format=filters["format"]
         )

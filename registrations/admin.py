@@ -24,7 +24,7 @@ class TeamAdmin(admin.ModelAdmin):
 class RegistrationAdmin(admin.ModelAdmin):
     list_display = (
         "full_name",
-        "participation_format",
+        "participation",
         "team",
         "organization_unit",
         "phone",
@@ -33,10 +33,20 @@ class RegistrationAdmin(admin.ModelAdmin):
         "status",
         "created_at",
     )
-    list_filter = ("participation_format", "team", "participant_type", "status")
+    list_filter = (
+        "participation_format",
+        "participates_in_pie",
+        "team",
+        "participant_type",
+        "status",
+    )
     search_fields = ("full_name", "organization_unit", "phone")
     list_select_related = ("team",)
     date_hierarchy = "created_at"
+
+    @admin.display(description="Формат участия", ordering="participation_format")
+    def participation(self, obj):
+        return obj.participation_display
 
 
 admin.site.site_header = "Краски осени — администрирование"

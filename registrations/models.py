@@ -52,6 +52,9 @@ class Registration(models.Model):
         choices=ParticipationFormat.choices,
         default=ParticipationFormat.GAME,
     )
+    participates_in_pie = models.BooleanField(
+        "Участвует в конкурсе «Счастье в пирогах»", default=False
+    )
     participant_type = models.CharField(
         "Возрастная категория",
         max_length=10,
@@ -81,6 +84,16 @@ class Registration(models.Model):
 
     def __str__(self):
         return f"{self.full_name} — {self.team}"
+
+    @property
+    def participation_display(self):
+        labels = [self.get_participation_format_display()]
+        if (
+            self.participates_in_pie
+            and self.participation_format != self.ParticipationFormat.PIE
+        ):
+            labels.append(dict(self.ParticipationFormat.choices)[self.ParticipationFormat.PIE])
+        return " + ".join(labels)
 
     def clean(self):
         super().clean()

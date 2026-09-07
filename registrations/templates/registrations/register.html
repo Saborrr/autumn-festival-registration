@@ -8,18 +8,19 @@
       <p class="eyebrow">Краски осени</p>
       <h1>Ваш формат<br>участия</h1>
       <p>19 сентября, 10:00–14:00<br>ФОК «Узловая», ул. Тургенева, 21</p>
+      <p class="form-contact-note">За более подробной информацией обращайтесь к лидерам рабочего актива (ЛРА)</p>
     </aside>
     <div class="form-card">
       <a class="back-link" href="{% url 'home' %}#formats">← Вернуться к форматам</a>
       <h2>Регистрация</h2>
-      <p>Выберите один из трёх форматов и укажите контактные данные.</p>
+      <p>Выберите один или несколько вариантов участия и укажите контактные данные.</p>
       <form method="post" novalidate>
         {% csrf_token %}
         {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
         <div class="field">{{ form.full_name.label_tag }}{{ form.full_name.errors }}{{ form.full_name }}</div>
         <div class="field">{{ form.organization_unit.label_tag }}{{ form.organization_unit.errors }}{{ form.organization_unit }}</div>
         <div class="field">{{ form.phone.label_tag }}{{ form.phone.errors }}{{ form.phone }}</div>
-        <fieldset class="field"><legend>{{ form.participation_format.label }}</legend>{{ form.participation_format.errors }}<div class="radio-stack">{% for radio in form.participation_format %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <fieldset class="field"><legend>{{ form.activities.label }}</legend>{{ form.activities.errors }}<div class="radio-stack activity-stack">{% for checkbox in form.activities %}<label>{{ checkbox.tag }} <span>{{ checkbox.choice_label }}</span></label>{% endfor %}</div><p class="help-text">Можно совместить конкурс пирогов с участием в игре или с ролью болельщика. Игрок не может одновременно быть болельщиком.</p></fieldset>
         <div data-game-fields>
           <div class="field">{{ form.team.label_tag }}{{ form.team.errors }}{{ form.team }}</div>
           <fieldset class="field"><legend>{{ form.participant_type.label }}</legend>{{ form.participant_type.errors }}<div class="radio-row">{% for radio in form.participant_type %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>

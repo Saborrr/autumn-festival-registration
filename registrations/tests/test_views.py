@@ -28,6 +28,11 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Конкурс «Счастье в пирогах»")
         self.assertContains(
             response,
+            "В каждую команду желательно включить двух детей младше 14 лет",
+        )
+        self.assertNotContains(response, "желательно предусмотреть двух детей")
+        self.assertContains(
+            response,
             "Дизайн и разработка Александр Фадеев, al.al.fdv@gmail.com",
         )
         self.assertNotContains(response, "Фото:")

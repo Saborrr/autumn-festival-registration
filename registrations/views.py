@@ -71,21 +71,93 @@ def registration_success(request):
 
 @staff_member_required(login_url="login")
 def moderator_dashboard(request):
-    registrations = Registration.objects.select_related("team").all()
-    active = registrations.filter(status=Registration.Status.ACTIVE)
+    all_registrations = Registration.objects.select_related("team").all()
+    active = all_registrations.filter(status=Registration.Status.ACTIVE)
     active_total = active.count()
     children_total = active.filter(
         participant_type=Registration.ParticipantType.CHILD
     ).count()
+    game_active_total = active.filter(
+        participation_format=Registration.ParticipationFormat.GAME
+    ).count()
     capacity_total = sum(Team.objects.values_list("capacity", flat=True))
+
+    filters = {
+        "format": request.GET.get("format", ""),
+        "team": request.GET.get("team", ""),
+        "organization_unit": request.GET.get("organization_unit", ""),
+        "companions": request.GET.get("companions", ""),
+        "status": request.GET.get("status", ""),
+    }
+    registrations = all_registrations
+    valid_formats = {value for value, _ in Registration.ParticipationFormat.choices}
+    valid_companions = {value for value, _ in Registration.Companions.choices}
+    valid_statuses = {value for value, _ in Registration.Status.choices}
+    if filters["format"] in valid_formats:
+        registrations = registrations.filter(
+            participation_format=filters["format"]
+        )
+    if filters["team"].isdigit():
+        registrations = registrations.filter(team_id=filters["team"])
+    elif filters["team"] == "none":
+        registrations = registrations.filter(team__isnull=True)
+    if filters["organization_unit"]:
+        registrations = registrations.filter(
+            organization_unit=filters["organization_unit"]
+        )
+    if filters["companions"] in valid_companions:
+        registrations = registrations.filter(companions=filters["companions"])
+    if filters["status"] in valid_statuses:
+        registrations = registrations.filter(status=filters["status"])
+
+    sort_fields = {
+        "format": "participation_format",
+        "team": "team__number",
+        "organization_unit": "organization_unit",
+        "companions": "companions",
+        "status": "status",
+    }
+    sort = request.GET.get("sort", "")
+    direction = request.GET.get("direction", "asc")
+    if sort in sort_fields:
+        prefix = "-" if direction == "desc" else ""
+        registrations = registrations.order_by(
+            f"{prefix}{sort_fields[sort]}", "created_at"
+        )
+    else:
+        sort = ""
+        direction = "asc"
+
+    organization_units = (
+        Registration.objects.exclude(organization_unit="")
+        .values_list("organization_unit", flat=True)
+        .distinct()
+        .order_by("organization_unit")
+    )
     return render(
         request,
         "registrations/moderator_dashboard.html",
         {
             "registrations": registrations,
+            "filtered_total": registrations.count(),
             "active_total": active_total,
             "children_total": children_total,
-            "free_total": max(capacity_total - active_total, 0),
+            "free_total": max(capacity_total - game_active_total, 0),
+            "filters": filters,
+            "sort": sort,
+            "direction": direction,
+            "teams": Team.objects.order_by("number"),
+            "organization_units": organization_units,
+            "format_choices": Registration.ParticipationFormat.choices,
+            "companion_choices": Registration.Companions.choices,
+            "status_choices": Registration.Status.choices,
+            "sort_options": (
+                ("format", "Формат"),
+                ("team", "Команда"),
+                ("organization_unit", "Подразделение"),
+                ("companions", "Сопровождение"),
+                ("status", "Статус"),
+            ),
         },
     )
 

@@ -3,7 +3,61 @@
 {% block content %}
 <section class="dashboard">
   <header class="dashboard-header"><div><p class="eyebrow ink">Рабочее пространство</p><h1>Панель модератора</h1></div><div class="dashboard-actions"><a class="button button-secondary" href="{% url 'home' %}">Открыть сайт</a>{% if user.is_superuser %}<a class="button button-primary" href="{% url 'admin:index' %}">Администратор</a>{% endif %}</div></header>
-  <div class="stats-strip"><div class="stat"><strong>{{ active_total }}</strong><span>активных участников</span></div><div class="stat"><strong>{{ children_total }}</strong><span>детей младше 14 лет</span></div><div class="stat"><strong>{{ free_total }}</strong><span>свободных мест</span></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Участник</th><th>Формат</th><th>Команда</th><th>Подразделение</th><th>Телефон</th><th>Сопровождение</th><th>Статус</th><th>Действие</th></tr></thead><tbody>{% for item in registrations %}<tr><td><strong>{{ item.full_name }}</strong>{% if item.child_age is not None %}<br><small>Ребёнок, {{ item.child_age }} лет</small>{% endif %}</td><td>{{ item.get_participation_format_display }}</td><td>{% if item.team %}Команда {{ item.team.number }}{% else %}—{% endif %}</td><td>{{ item.organization_unit|default:'—' }}</td><td>{{ item.phone|default:'—' }}</td><td>{{ item.get_companions_display }}{% if item.children_details %}<br><small>{{ item.children_details }}</small>{% endif %}</td><td><span class="badge {% if item.status == 'cancelled' %}cancelled{% endif %}">{{ item.get_status_display }}</span></td><td><form class="inline-form" method="post" action="{% url 'moderator_toggle' item.pk %}">{% csrf_token %}<button class="text-button" type="submit">{% if item.status == 'active' %}Отменить{% else %}Восстановить{% endif %}</button></form></td></tr>{% empty %}<tr><td colspan="8">Регистраций пока нет.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="stats-strip"><div class="stat"><strong>{{ active_total }}</strong><span>активных участников</span></div><div class="stat"><strong>{{ children_total }}</strong><span>детей младше 14 лет</span></div><div class="stat"><strong>{{ free_total }}</strong><span>свободных мест в командах</span></div></div>
+  <div class="filters-bar">
+    <form method="get" class="filters-form">
+      <div class="filter-group">
+        <label for="id_format">Формат</label>
+        <select name="format" id="id_format">
+          <option value="">Все</option>
+          {% for value,label in format_choices %}
+          <option value="{{ value }}" {% if filters.format == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="id_team">Команда</label>
+        <select name="team" id="id_team">
+          <option value="">Все</option>
+          <option value="none" {% if filters.team == 'none' %}selected{% endif %}>Без команды</option>
+          {% for team in teams %}
+          <option value="{{ team.pk }}" {% if filters.team == team.pk|stringformat:'s' %}selected{% endif %}>Команда {{ team.number }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="id_organization_unit">Подразделение</label>
+        <select name="organization_unit" id="id_organization_unit">
+          <option value="">Все</option>
+          {% for ou in organization_units %}
+          <option value="{{ ou }}" {% if filters.organization_unit == ou %}selected{% endif %}>{{ ou }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="id_companions">Сопровождение</label>
+        <select name="companions" id="id_companions">
+          <option value="">Все</option>
+          {% for value,label in companion_choices %}
+          <option value="{{ value }}" {% if filters.companions == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="id_status">Статус</label>
+        <select name="status" id="id_status">
+          <option value="">Все</option>
+          {% for value,label in status_choices %}
+          <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group filter-actions">
+        <button type="submit" class="button button-primary">Применить</button>
+        <a class="button button-secondary" href="{% url 'moderator_dashboard' %}">Сбросить</a>
+      </div>
+    </form>
+  </div>
+  <div class="table-wrap"><table><thead><tr>{% for sort_value,sort_label in sort_options %}<th {% if sort == sort_value %}class="sorted {{ direction }}"{% endif %}><a href="?{% if filters.format %}format={{ filters.format }}&{% endif %}{% if filters.team %}team={{ filters.team }}&{% endif %}{% if filters.organization_unit %}organization_unit={{ filters.organization_unit }}&{% endif %}{% if filters.companions %}companions={{ filters.companions }}&{% endif %}{% if filters.status %}status={{ filters.status }}&{% endif %}sort={{ sort_value }}&direction={% if sort == sort_value and direction == 'asc' %}desc{% else %}asc{% endif %}">{{ sort_label }}{% if sort == sort_value %}{% if direction == 'asc' %} ↑{% else %} ↓{% endif %}{% endif %}</a></th>{% endfor %}<th>Участник</th><th>Телефон</th><th>Действие</th></tr></thead><tbody>{% for item in registrations %}<tr><td>{{ item.get_participation_format_display }}</td><td>{% if item.team %}Команда {{ item.team.number }}{% else %}—{% endif %}</td><td>{{ item.organization_unit|default:'—' }}</td><td>{{ item.get_companions_display }}{% if item.children_details %}<br><small>{{ item.children_details }}</small>{% endif %}</td><td><span class="badge {% if item.status == 'cancelled' %}cancelled{% endif %}">{{ item.get_status_display }}</span></td><td><strong>{{ item.full_name }}</strong>{% if item.child_age is not None %}<br><small>Ребёнок, {{ item.child_age }} лет</small>{% endif %}</td><td>{{ item.phone|default:'—' }}</td><td><form class="inline-form" method="post" action="{% url 'moderator_toggle' item.pk %}">{% csrf_token %}<button class="text-button" type="submit">{% if item.status == 'active' %}Отменить{% else %}Восстановить{% endif %}</button></form></td></tr>{% empty %}<tr><td colspan="8">Регистраций нет ({{ filtered_total }} после фильтров).</td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% endblock %}

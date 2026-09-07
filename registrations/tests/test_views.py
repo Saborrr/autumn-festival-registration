@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from registrations.models import Team
+from registrations.models import Registration, Team
 
 
 class HomePageTests(TestCase):
@@ -17,6 +17,11 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Участник «Большой игры»")
         self.assertContains(response, "Болельщик")
         self.assertContains(response, "Конкурс «Счастье в пирогах»")
+        self.assertContains(
+            response,
+            "Дизайн и разработка Александр Фадеев, al.al.fdv@gmail.com",
+        )
+        self.assertNotContains(response, "Фото:")
 
     def test_home_shows_active_participants_in_their_team(self):
         team = Team.objects.get(number=1)
@@ -195,3 +200,99 @@ class ModeratorDashboardTests(TestCase):
         self.assertRedirects(response, reverse("moderator_dashboard"))
         cancelled.refresh_from_db()
         self.assertEqual(cancelled.status, cancelled.Status.CANCELLED)
+
+    def test_dashboard_filters_every_supported_column(self):
+        moderator = get_user_model().objects.create_user(
+            username="filter-moderator", password="strong-password", is_staff=True
+        )
+        self.client.force_login(moderator)
+        team = Team.objects.get(number=2)
+        game = team.registrations.create(
+            full_name="Игрок",
+            organization_unit="Производство",
+            phone="111",
+            participation_format="game",
+            participant_type="adult",
+            companions="alone",
+        )
+        supporter = Registration.objects.create(
+            full_name="Болельщик",
+            organization_unit="Офис",
+            phone="222",
+            participation_format="supporter",
+            participant_type="",
+            companions="adult_relative",
+        )
+        pie = Registration.objects.create(
+            full_name="Пекарь",
+            organization_unit="Логистика",
+            phone="333",
+            participation_format="pie",
+            participant_type="",
+            companions="children",
+            children_details="1 ребёнок, 8 лет",
+            status="cancelled",
+        )
+        cases = (
+            ({"format": "supporter"}, supporter),
+            ({"team": str(team.pk)}, game),
+            ({"organization_unit": "Логистика"}, pie),
+            ({"companions": "alone"}, game),
+            ({"status": "cancelled"}, pie),
+        )
+
+        for params, expected in cases:
+            with self.subTest(params=params):
+                response = self.client.get(reverse("moderator_dashboard"), params)
+                self.assertEqual(list(response.context["registrations"]), [expected])
+
+    def test_dashboard_sorts_every_supported_column(self):
+        moderator = get_user_model().objects.create_user(
+            username="sort-moderator", password="strong-password", is_staff=True
+        )
+        self.client.force_login(moderator)
+        team_one = Team.objects.get(number=1)
+        team_three = Team.objects.get(number=3)
+        alpha = team_one.registrations.create(
+            full_name="Альфа",
+            organization_unit="Альфа",
+            participation_format="game",
+            participant_type="adult",
+            companions="adult_relative",
+            status="active",
+        )
+        omega = team_three.registrations.create(
+            full_name="Омега",
+            organization_unit="Омега",
+            participation_format="pie",
+            participant_type="",
+            companions="children",
+            children_details="1 ребёнок, 8 лет",
+            status="cancelled",
+        )
+        cases = (
+            ("format", "asc", alpha),
+            ("team", "desc", omega),
+            ("organization_unit", "asc", alpha),
+            ("companions", "asc", alpha),
+            ("status", "desc", omega),
+        )
+
+        for sort, direction, expected_first in cases:
+            with self.subTest(sort=sort, direction=direction):
+                response = self.client.get(
+                    reverse("moderator_dashboard"),
+                    {"sort": sort, "direction": direction},
+                )
+                self.assertEqual(response.context["registrations"][0], expected_first)
+
+    def test_dashboard_does_not_offer_participant_or_phone_sorting(self):
+        moderator = get_user_model().objects.create_user(
+            username="safe-moderator", password="strong-password", is_staff=True
+        )
+        self.client.force_login(moderator)
+
+        response = self.client.get(reverse("moderator_dashboard"))
+
+        self.assertNotContains(response, 'value="full_name"')
+        self.assertNotContains(response, 'value="phone"')

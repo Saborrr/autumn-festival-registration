@@ -5,7 +5,7 @@
   const ageRadios = document.querySelectorAll('input[name="participant_type"]');
   const ageInput = ageField?.querySelector('input');
   const childrenField = document.querySelector('[data-children-details]');
-  const companionRadios = document.querySelectorAll('input[name="companions"]');
+  const companionCheckboxes = document.querySelectorAll('input[name="companions"]');
   const childrenInput = childrenField?.querySelector('input');
 
   const activity = (value) =>
@@ -37,9 +37,22 @@
     if (isGame) syncAge();
   };
 
-  const syncChildren = () => {
-    const selected = document.querySelector('input[name="companions"]:checked');
-    const hasChildren = selected?.value === 'children';
+  const companion = (value) =>
+    document.querySelector(`input[name="companions"][value="${value}"]`);
+
+  const syncCompanions = (changed) => {
+    const alone = companion('alone');
+    const adult = companion('adult_relative');
+    const children = companion('children');
+
+    if (changed?.checked && changed.value === 'alone') {
+      if (adult) adult.checked = false;
+      if (children) children.checked = false;
+    } else if (changed?.checked && (changed.value === 'adult_relative' || changed.value === 'children')) {
+      if (alone) alone.checked = false;
+    }
+
+    const hasChildren = Boolean(children?.checked);
     childrenField.hidden = !hasChildren;
     childrenInput.disabled = !hasChildren;
     childrenInput.required = hasChildren;
@@ -50,7 +63,9 @@
   activityCheckboxes.forEach((checkbox) =>
     checkbox.addEventListener('change', () => syncActivities(checkbox))
   );
-  companionRadios.forEach((radio) => radio.addEventListener('change', syncChildren));
+  companionCheckboxes.forEach((checkbox) =>
+    checkbox.addEventListener('change', () => syncCompanions(checkbox))
+  );
   syncActivities();
-  syncChildren();
+  syncCompanions();
 })();

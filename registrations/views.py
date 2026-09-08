@@ -124,7 +124,21 @@ def moderator_dashboard(request):
         registrations = registrations.filter(
             organization_unit=filters["organization_unit"]
         )
-    if filters["companions"] in valid_companions:
+    if filters["companions"] == Registration.Companions.ADULT_RELATIVE:
+        registrations = registrations.filter(
+            companions__in=(
+                Registration.Companions.ADULT_RELATIVE,
+                Registration.Companions.ADULT_AND_CHILDREN,
+            )
+        )
+    elif filters["companions"] == Registration.Companions.CHILDREN:
+        registrations = registrations.filter(
+            companions__in=(
+                Registration.Companions.CHILDREN,
+                Registration.Companions.ADULT_AND_CHILDREN,
+            )
+        )
+    elif filters["companions"] in valid_companions:
         registrations = registrations.filter(companions=filters["companions"])
     if filters["status"] in valid_statuses:
         registrations = registrations.filter(status=filters["status"])

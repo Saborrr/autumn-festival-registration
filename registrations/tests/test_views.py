@@ -110,6 +110,77 @@ class HomePageTests(TestCase):
         self.assertContains(response, "Вернуться к форматам")
         self.assertNotContains(response, "Ваше место<br>в команде", html=True)
 
+    def test_companion_options_are_checkboxes(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(response, 'name="companions"', count=3)
+        self.assertContains(response, 'type="checkbox"', count=6)
+        self.assertContains(response, "Со мной будет 1 взрослый родственник")
+        self.assertContains(response, "Со мной будет ребёнок (дети)")
+
+    def test_adult_relative_and_children_can_be_selected_together(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Семейный Болельщик",
+                "organization_unit": "ЭФКО, офис",
+                "phone": "+7 900 555-66-77",
+                "activities": ["supporter"],
+                "participant_type": "",
+                "child_age": "",
+                "companions": ["adult_relative", "children"],
+                "children_details": "2 ребёнка, 6 и 9 лет",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registration_success"))
+        registration = Registration.objects.get(full_name="Семейный Болельщик")
+        self.assertEqual(registration.companions, "adult_and_children")
+        self.assertEqual(registration.children_details, "2 ребёнка, 6 и 9 лет")
+
+    def test_alone_cannot_be_combined_with_companions(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Противоречивый Выбор",
+                "organization_unit": "ЭФКО, офис",
+                "phone": "+7 900 555-66-88",
+                "activities": ["supporter"],
+                "participant_type": "",
+                "child_age": "",
+                "companions": ["alone", "adult_relative"],
+                "children_details": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Вариант «Приду один (одна)» нельзя совмещать")
+        self.assertFalse(
+            Registration.objects.filter(full_name="Противоречивый Выбор").exists()
+        )
+
+    def test_combined_companions_require_children_details(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "team": "",
+                "full_name": "Без Возраста Детей",
+                "organization_unit": "ЭФКО, офис",
+                "phone": "+7 900 555-66-99",
+                "activities": ["supporter"],
+                "participant_type": "",
+                "child_age": "",
+                "companions": ["adult_relative", "children"],
+                "children_details": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Укажите количество и возраст детей")
+        self.assertFalse(Registration.objects.filter(full_name="Без Возраста Детей").exists())
+
     def test_supporter_can_register_without_a_team(self):
         response = self.client.post(
             reverse("register"),
@@ -223,6 +294,26 @@ class HomePageTests(TestCase):
 
 
 class ModeratorDashboardTests(TestCase):
+    def test_companion_filters_include_combined_registration(self):
+        moderator = get_user_model().objects.create_user(
+            username="family-moderator", password="strong-password", is_staff=True
+        )
+        self.client.force_login(moderator)
+        combined = Registration.objects.create(
+            full_name="Семейный участник",
+            participation_format="supporter",
+            companions="adult_and_children",
+            children_details="1 ребёнок, 8 лет",
+        )
+
+        for companion_filter in ("adult_relative", "children"):
+            with self.subTest(companion_filter=companion_filter):
+                response = self.client.get(
+                    reverse("moderator_dashboard"),
+                    {"companions": companion_filter},
+                )
+                self.assertEqual(list(response.context["registrations"]), [combined])
+
     def test_dashboard_displays_and_filters_combined_pie_participation(self):
         moderator = get_user_model().objects.create_user(
             username="combined-moderator", password="strong-password", is_staff=True
@@ -457,6 +548,20 @@ class RegistrationExportTests(TestCase):
         cells = [cell.text for table in document.tables for row in table.rows for cell in row.cells]
         self.assertIn("Анна Экспортова", cells)
         self.assertTrue(any("Счастье в пирогах" in cell for cell in cells))
+
+    def test_exports_show_combined_companions(self):
+        self.registration.companions = "adult_and_children"
+        self.registration.children_details = "1 ребёнок, 7 лет"
+        self.registration.save()
+        self.client.force_login(self.moderator)
+
+        response = self.client.get(reverse("export_registrations_xlsx"))
+
+        workbook = load_workbook(BytesIO(response.content), read_only=True)
+        rows = list(workbook["Регистрации"].values)
+        self.assertIn("1 взрослый родственник", rows[1][7])
+        self.assertIn("ребёнок (дети)", rows[1][7])
+        self.assertIn("1 ребёнок, 7 лет", rows[1][7])
 
     def test_export_buttons_are_available_in_moderator_and_admin_panels(self):
         self.client.force_login(self.moderator)

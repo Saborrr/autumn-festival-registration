@@ -10,6 +10,12 @@ class RegistrationForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         error_messages={"required": "Выберите хотя бы один вариант участия."},
     )
+    companions = forms.MultipleChoiceField(
+        label="Кто придёт с вами",
+        choices=Registration.Companions.choices[:3],
+        widget=forms.CheckboxSelectMultiple,
+        error_messages={"required": "Выберите хотя бы один вариант."},
+    )
 
     class Meta:
         model = Registration
@@ -40,7 +46,6 @@ class RegistrationForm(forms.ModelForm):
             ),
             "participant_type": forms.RadioSelect,
             "child_age": forms.NumberInput(attrs={"min": 0, "max": 13}),
-            "companions": forms.RadioSelect,
             "children_details": forms.TextInput(
                 attrs={"placeholder": "Например: 2 ребёнка, 6 и 9 лет"}
             ),
@@ -58,9 +63,24 @@ class RegistrationForm(forms.ModelForm):
         self.fields["participant_type"].required = False
         self.fields["participant_type"].initial = Registration.ParticipantType.ADULT
         self.fields["child_age"].required = False
-        self.fields["companions"].choices = Registration.Companions.choices
-        self.fields["companions"].initial = Registration.Companions.ALONE
         self.fields["children_details"].required = False
+
+        if not self.is_bound:
+            companion_value = self.instance.companions
+            companion_initial = {
+                Registration.Companions.ALONE: [Registration.Companions.ALONE],
+                Registration.Companions.ADULT_RELATIVE: [
+                    Registration.Companions.ADULT_RELATIVE
+                ],
+                Registration.Companions.CHILDREN: [Registration.Companions.CHILDREN],
+                Registration.Companions.ADULT_AND_CHILDREN: [
+                    Registration.Companions.ADULT_RELATIVE,
+                    Registration.Companions.CHILDREN,
+                ],
+            }
+            self.initial["companions"] = companion_initial.get(
+                companion_value, [Registration.Companions.ALONE]
+            )
 
         if not self.is_bound and self.instance.pk:
             activities = [self.instance.participation_format]
@@ -101,7 +121,29 @@ class RegistrationForm(forms.ModelForm):
         self.instance.participation_format = participation_format
         self.instance.participates_in_pie = pie in activities
 
-        if cleaned.get("companions") == Registration.Companions.CHILDREN:
+        companion_options = set(cleaned.get("companions") or ())
+        alone = Registration.Companions.ALONE
+        adult_relative = Registration.Companions.ADULT_RELATIVE
+        children = Registration.Companions.CHILDREN
+
+        if alone in companion_options and len(companion_options) > 1:
+            self.add_error(
+                "companions",
+                "Вариант «Приду один (одна)» нельзя совмещать с другими вариантами.",
+            )
+            companion_value = None
+        elif companion_options == {adult_relative, children}:
+            companion_value = Registration.Companions.ADULT_AND_CHILDREN
+        elif len(companion_options) == 1:
+            companion_value = next(iter(companion_options))
+        else:
+            companion_value = None
+
+        if companion_value is not None:
+            cleaned["companions"] = companion_value
+            self.instance.companions = companion_value
+
+        if children in companion_options and companion_value is not None:
             if not (cleaned.get("children_details") or "").strip():
                 self.add_error(
                     "children_details", "Укажите количество и возраст детей."

@@ -33,6 +33,10 @@ class Registration(models.Model):
         ALONE = "alone", "Приду один (одна)"
         ADULT_RELATIVE = "adult_relative", "Со мной будет 1 взрослый родственник"
         CHILDREN = "children", "Со мной будет ребёнок (дети)"
+        ADULT_AND_CHILDREN = (
+            "adult_and_children",
+            "Со мной будут 1 взрослый родственник и ребёнок (дети)",
+        )
 
     team = models.ForeignKey(
         Team,
@@ -113,7 +117,10 @@ class Registration(models.Model):
                 errors["child_age"] = "Для этой категории ребёнок должен быть младше 14 лет."
         elif self.child_age is not None:
             errors["child_age"] = "Возраст указывается только для ребёнка."
-        if self.companions == self.Companions.CHILDREN and not self.children_details.strip():
+        if self.companions in {
+            self.Companions.CHILDREN,
+            self.Companions.ADULT_AND_CHILDREN,
+        } and not self.children_details.strip():
             errors["children_details"] = "Укажите количество и возраст детей."
         if errors:
             raise ValidationError(errors)

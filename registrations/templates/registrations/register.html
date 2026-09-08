@@ -26,7 +26,7 @@
           <fieldset class="field"><legend>{{ form.participant_type.label }}</legend>{{ form.participant_type.errors }}<div class="radio-row">{% for radio in form.participant_type %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
           <div class="field" data-child-age>{{ form.child_age.label_tag }}{{ form.child_age.errors }}{{ form.child_age }}<p class="help-text">Только для детей младше 14 лет.</p></div>
         </div>
-        <fieldset class="field"><legend>{{ form.companions.label }}</legend>{{ form.companions.errors }}<div class="radio-stack">{% for radio in form.companions %}<label>{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <fieldset class="field"><legend>{{ form.companions.label }}</legend>{{ form.companions.errors }}<div class="radio-stack companion-stack">{% for checkbox in form.companions %}<label>{{ checkbox.tag }} <span>{{ checkbox.choice_label }}</span></label>{% endfor %}</div><p class="help-text">Можно одновременно выбрать взрослого родственника и ребёнка (детей).</p></fieldset>
         <div class="field" data-children-details>{{ form.children_details.label_tag }}{{ form.children_details.errors }}{{ form.children_details }}</div>
         <button class="button submit-button" type="submit">Зарегистрироваться</button>
       </form>

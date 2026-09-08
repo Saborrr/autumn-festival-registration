@@ -56,3 +56,15 @@ class RegistrationValidationTests(TestCase):
         )
 
         registration.full_clean()
+
+    def test_combined_companions_require_children_details(self):
+        registration = Registration(
+            full_name="Иван Петров",
+            organization_unit="ЭФКО",
+            phone="+7 900 000-00-00",
+            participation_format="supporter",
+            companions="adult_and_children",
+        )
+
+        with self.assertRaisesMessage(ValidationError, "Укажите количество и возраст детей"):
+            registration.full_clean()

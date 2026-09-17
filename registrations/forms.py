@@ -96,11 +96,7 @@ class RegistrationForm(forms.ModelForm):
                     "autocomplete": "tel",
                     "inputmode": "tel",
                     "maxlength": 18,
-                    "pattern": (
-                        r"(?:[+]7|7|8)?(?: |\(|\)|\-)*[0-9]{3}"
-                        r"(?: |\(|\)|\-)*[0-9]{3}(?: |\-)*[0-9]{2}"
-                        r"(?: |\-)*[0-9]{2}"
-                    ),
+                    "pattern": r"(?:[^0-9]*[0-9]){10,11}[^0-9]*",
                     "placeholder": "+7 900 000-00-00",
                 }
             ),

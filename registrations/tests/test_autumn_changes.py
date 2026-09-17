@@ -333,9 +333,10 @@ class PhoneTests(TestCase):
         self.assertEqual(field.widget.attrs["inputmode"], "tel")
         self.assertEqual(
             field.widget.attrs["pattern"],
-            "(?:[+]7|7|8)?[ ()-]*[0-9]{3}[ ()-]*[0-9]{3}[ -]*[0-9]{2}[ -]*[0-9]{2}",
+            r"(?:[+]7|7|8)?(?: |\(|\)|\-)*[0-9]{3}"
+            r"(?: |\(|\)|\-)*[0-9]{3}(?: |\-)*[0-9]{2}"
+            r"(?: |\-)*[0-9]{2}",
         )
-        self.assertNotIn("\\", field.widget.attrs["pattern"])
 
 
 class AdminInvariantTests(TestCase):

@@ -27,7 +27,12 @@
           <div class="field" data-child-age>{{ form.child_age.label_tag }}{{ form.child_age.errors }}{{ form.child_age }}<p class="help-text">Только для детей младше 14 лет.</p></div>
         </div>
         <fieldset class="field"><legend>{{ form.companions.label }}</legend>{{ form.companions.errors }}<div class="radio-stack companion-stack">{% for checkbox in form.companions %}<label>{{ checkbox.tag }} <span>{{ checkbox.choice_label }}</span></label>{% endfor %}</div><p class="help-text">Можно одновременно выбрать взрослого родственника и ребёнка (детей).</p></fieldset>
-        <div class="field" data-children-details>{{ form.children_details.label_tag }}{{ form.children_details.errors }}{{ form.children_details }}</div>
+        <div class="field companion-children" data-companion-children>
+          <div class="field-heading"><span>{{ form.child_ages.label }}</span><small>Укажите возраст каждого ребёнка.</small></div>
+          {{ form.child_ages.errors }}
+          {{ form.child_ages }}
+          <button type="button" class="button add-child" data-add-child>Добавить ребёнка</button>
+        </div>
         <button class="button submit-button" type="submit">Зарегистрироваться</button>
       </form>
     </div>

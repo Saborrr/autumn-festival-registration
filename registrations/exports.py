@@ -27,7 +27,9 @@ HEADERS = (
 
 
 def registration_rows():
-    registrations = Registration.objects.select_related("team").order_by(
+    registrations = Registration.objects.select_related("team").prefetch_related(
+        "companion_children"
+    ).order_by(
         "team__number", "created_at", "pk"
     )
     rows = []
@@ -36,8 +38,11 @@ def registration_rows():
         if registration.child_age is not None:
             age = f"{age}, {registration.child_age} лет"
         companions = registration.get_companions_display()
+        child_summary = registration.companion_children_display
+        if child_summary:
+            companions = f"{companions}: {child_summary}"
         if registration.children_details:
-            companions = f"{companions}: {registration.children_details}"
+            companions = f"{companions}; архив: {registration.children_details}"
         rows.append(
             (
                 number,

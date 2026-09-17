@@ -1,17 +1,78 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Prefetch, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import RegistrationForm
 from .exports import docx_response, xlsx_response
-from .models import Registration, Team
+from .models import CompanionChild, Registration, Team
+
+
+ADULT_COMPANION_VALUES = (
+    Registration.Companions.ADULT_RELATIVE,
+    Registration.Companions.ADULT_AND_CHILDREN,
+)
+CHILD_COMPANION_VALUES = (
+    Registration.Companions.CHILDREN,
+    Registration.Companions.ADULT_AND_CHILDREN,
+)
+
+
+def aggregate_attendance(queryset):
+    """Return registration and people totals in one aggregate query."""
+    totals = queryset.aggregate(
+        matched_registrations=Count("pk", distinct=True),
+        active_main_participants=Count(
+            "pk", filter=Q(status=Registration.Status.ACTIVE), distinct=True
+        ),
+        main_children=Count(
+            "pk",
+            filter=Q(
+                status=Registration.Status.ACTIVE,
+                participant_type=Registration.ParticipantType.CHILD,
+            ),
+            distinct=True,
+        ),
+        accompanying_adults=Count(
+            "pk",
+            filter=Q(
+                status=Registration.Status.ACTIVE,
+                companions__in=ADULT_COMPANION_VALUES,
+            ),
+            distinct=True,
+        ),
+        accompanying_children=Count(
+            "companion_children",
+            filter=Q(
+                status=Registration.Status.ACTIVE,
+                companions__in=CHILD_COMPANION_VALUES,
+            ),
+        ),
+        legacy_child_records_needing_review=Count(
+            "pk",
+            filter=(
+                Q(status=Registration.Status.ACTIVE)
+                & ~Q(children_details="")
+                & (
+                    Q(companion_children__needs_manual_review=True)
+                    | Q(companion_children__isnull=True)
+                )
+            ),
+            distinct=True,
+        ),
+    )
+    totals["total_active_people"] = (
+        totals["active_main_participants"]
+        + totals["accompanying_adults"]
+        + totals["accompanying_children"]
+    )
+    return totals
 
 
 def home(request):
-    teams = Team.objects.annotate(
+    teams = Team.objects.filter(is_active=True).annotate(
         active_count=Count(
             "registrations",
             filter=Q(registrations__status=Registration.Status.ACTIVE),
@@ -51,21 +112,33 @@ def register(request):
     form = RegistrationForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
         registration = form.save(commit=False)
-        if registration.participation_format == Registration.ParticipationFormat.GAME:
-            with transaction.atomic():
-                team = Team.objects.select_for_update().get(pk=registration.team_id)
-                occupied = team.registrations.filter(
-                    status=Registration.Status.ACTIVE
-                ).count()
-                if occupied >= team.capacity:
-                    form.add_error("team", "В этой команде уже нет свободных мест.")
+        with transaction.atomic():
+            if registration.participation_format == Registration.ParticipationFormat.GAME:
+                team = (
+                    Team.objects.select_for_update()
+                    .filter(pk=registration.team_id, is_active=True)
+                    .first()
+                )
+                if team is None:
+                    form.add_error("team", "Выберите действующую команду.")
                 else:
-                    registration.team = team
-                    registration.save()
-                    return redirect("registration_success")
-        else:
-            registration.save()
-            return redirect("registration_success")
+                    occupied = team.registrations.filter(
+                        status=Registration.Status.ACTIVE
+                    ).count()
+                    if occupied >= team.capacity:
+                        form.add_error("team", "В этой команде уже нет свободных мест.")
+                    else:
+                        registration.team = team
+                        registration.save()
+            else:
+                registration.save()
+
+            if registration.pk and not form.errors:
+                CompanionChild.objects.bulk_create(
+                    CompanionChild(registration=registration, age=age)
+                    for age in form.cleaned_data["child_ages"]
+                )
+                return redirect("registration_success")
     return render(request, "registrations/register.html", {"form": form})
 
 
@@ -85,16 +158,20 @@ def export_registrations_docx(request):
 
 @staff_member_required(login_url="login")
 def moderator_dashboard(request):
-    all_registrations = Registration.objects.select_related("team").all()
-    active = all_registrations.filter(status=Registration.Status.ACTIVE)
-    active_total = active.count()
-    children_total = active.filter(
-        participant_type=Registration.ParticipantType.CHILD
+    all_registrations = Registration.objects.select_related("team").prefetch_related(
+        "companion_children"
+    )
+    global_summary = aggregate_attendance(all_registrations)
+    active_teams = Team.objects.filter(is_active=True)
+    capacity_total = active_teams.aggregate(total=Sum("capacity"))["total"] or 0
+    active_game_total = Registration.objects.filter(
+        status=Registration.Status.ACTIVE,
+        participation_format=Registration.ParticipationFormat.GAME,
+        team__is_active=True,
     ).count()
-    game_active_total = active.filter(
-        participation_format=Registration.ParticipationFormat.GAME
-    ).count()
-    capacity_total = sum(Team.objects.values_list("capacity", flat=True))
+    global_summary["free_active_team_places"] = max(
+        capacity_total - active_game_total, 0
+    )
 
     filters = {
         "format": request.GET.get("format", ""),
@@ -143,6 +220,9 @@ def moderator_dashboard(request):
     if filters["status"] in valid_statuses:
         registrations = registrations.filter(status=filters["status"])
 
+    filters_applied = any(filters.values())
+    filtered_summary = aggregate_attendance(registrations)
+
     sort_fields = {
         "format": "participation_format",
         "team": "team__number",
@@ -172,10 +252,14 @@ def moderator_dashboard(request):
         "registrations/moderator_dashboard.html",
         {
             "registrations": registrations,
-            "filtered_total": registrations.count(),
-            "active_total": active_total,
-            "children_total": children_total,
-            "free_total": max(capacity_total - game_active_total, 0),
+            "filtered_total": filtered_summary["matched_registrations"],
+            "global_summary": global_summary,
+            "filtered_summary": filtered_summary,
+            "filters_applied": filters_applied,
+            # Compatibility aliases for existing integrations.
+            "active_total": global_summary["active_main_participants"],
+            "children_total": global_summary["main_children"],
+            "free_total": global_summary["free_active_team_places"],
             "filters": filters,
             "sort": sort,
             "direction": direction,

@@ -10,12 +10,12 @@ from registrations.models import Registration, Team
 
 
 class HomePageTests(TestCase):
-    def test_home_lists_all_ten_teams_with_capacity(self):
+    def test_home_lists_all_six_active_teams_with_capacity(self):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Краски осени")
-        self.assertEqual(len(response.context["teams"]), 10)
+        self.assertEqual(len(response.context["teams"]), 6)
         self.assertContains(response, "0 из 10")
         self.assertContains(response, "19 сентября")
         self.assertContains(
@@ -130,14 +130,18 @@ class HomePageTests(TestCase):
                 "participant_type": "",
                 "child_age": "",
                 "companions": ["adult_relative", "children"],
-                "children_details": "2 ребёнка, 6 и 9 лет",
+                "child_ages": ["6", "9"],
             },
         )
 
         self.assertRedirects(response, reverse("registration_success"))
         registration = Registration.objects.get(full_name="Семейный Болельщик")
         self.assertEqual(registration.companions, "adult_and_children")
-        self.assertEqual(registration.children_details, "2 ребёнка, 6 и 9 лет")
+        self.assertEqual(registration.children_details, "")
+        self.assertEqual(
+            list(registration.companion_children.values_list("age", flat=True)),
+            [6, 9],
+        )
 
     def test_alone_cannot_be_combined_with_companions(self):
         response = self.client.post(
@@ -161,7 +165,7 @@ class HomePageTests(TestCase):
             Registration.objects.filter(full_name="Противоречивый Выбор").exists()
         )
 
-    def test_combined_companions_require_children_details(self):
+    def test_combined_companions_require_child_ages(self):
         response = self.client.post(
             reverse("register"),
             {
@@ -173,12 +177,12 @@ class HomePageTests(TestCase):
                 "participant_type": "",
                 "child_age": "",
                 "companions": ["adult_relative", "children"],
-                "children_details": "",
+                "child_ages": [],
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Укажите количество и возраст детей")
+        self.assertContains(response, "Укажите возраст каждого ребёнка от 0 до 17 лет")
         self.assertFalse(Registration.objects.filter(full_name="Без Возраста Детей").exists())
 
     def test_supporter_can_register_without_a_team(self):
@@ -216,7 +220,7 @@ class HomePageTests(TestCase):
                 "participant_type": "",
                 "child_age": "",
                 "companions": "children",
-                "children_details": "2 ребёнка, 6 и 9 лет",
+                "child_ages": ["6", "9"],
             },
         )
 

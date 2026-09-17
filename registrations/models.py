@@ -1,10 +1,12 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 
 class Team(models.Model):
     number = models.PositiveSmallIntegerField(unique=True)
     capacity = models.PositiveSmallIntegerField(default=10)
+    is_active = models.BooleanField("Показывать команду", default=True)
 
     class Meta:
         ordering = ("number",)
@@ -99,6 +101,30 @@ class Registration(models.Model):
             labels.append(dict(self.ParticipationFormat.choices)[self.ParticipationFormat.PIE])
         return " + ".join(labels)
 
+    @property
+    def companion_children_display(self):
+        children = list(self.companion_children.all())
+        count = len(children)
+        if not count:
+            return ""
+        last_two = count % 100
+        last = count % 10
+        noun = "ребёнок" if last == 1 and last_two != 11 else (
+            "ребёнка" if 2 <= last <= 4 and not 12 <= last_two <= 14 else "детей"
+        )
+        ages = [child.age for child in children]
+        if all(age is not None for age in ages):
+            age_text = " и ".join(str(age) for age in ages) + " лет"
+        else:
+            labels = [
+                f"{age} лет" if age is not None else "возраст не указан"
+                for age in ages
+            ]
+            age_text = ", ".join(labels[:-1]) + (
+                f" и {labels[-1]}" if len(labels) > 1 else labels[0]
+            )
+        return f"{count} {noun}: {age_text}"
+
     def clean(self):
         super().clean()
         errors = {}
@@ -117,10 +143,29 @@ class Registration(models.Model):
                 errors["child_age"] = "Для этой категории ребёнок должен быть младше 14 лет."
         elif self.child_age is not None:
             errors["child_age"] = "Возраст указывается только для ребёнка."
-        if self.companions in {
-            self.Companions.CHILDREN,
-            self.Companions.ADULT_AND_CHILDREN,
-        } and not self.children_details.strip():
-            errors["children_details"] = "Укажите количество и возраст детей."
         if errors:
             raise ValidationError(errors)
+
+
+class CompanionChild(models.Model):
+    registration = models.ForeignKey(
+        Registration,
+        on_delete=models.CASCADE,
+        related_name="companion_children",
+    )
+    age = models.PositiveSmallIntegerField(
+        "Возраст",
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(17)],
+    )
+    needs_manual_review = models.BooleanField("Нужна ручная проверка", default=False)
+
+    class Meta:
+        ordering = ("id",)
+        verbose_name = "сопровождающий ребёнок"
+        verbose_name_plural = "сопровождающие дети"
+
+    def __str__(self):
+        age = f"{self.age} лет" if self.age is not None else "возраст не указан"
+        return f"{self.registration.full_name}: {age}"

@@ -1,7 +1,7 @@
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from docx import Document
 from openpyxl import load_workbook
@@ -9,50 +9,50 @@ from openpyxl import load_workbook
 from registrations.models import Registration, Team
 
 
+@override_settings(REGISTRATION_OPEN=True)
 class HomePageTests(TestCase):
-    def test_home_lists_all_six_active_teams_with_capacity(self):
+    @override_settings(REGISTRATION_OPEN=False)
+    def test_home_is_a_closed_registration_landing(self):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Краски осени")
-        self.assertEqual(len(response.context["teams"]), 6)
-        self.assertContains(response, "0 из 10")
+        self.assertContains(response, "Регистрация на мероприятие закрыта")
         self.assertContains(response, "19 сентября")
-        self.assertContains(
-            response,
-            "За подробной информацией обращайтесь к ЛРА",
-        )
-        self.assertNotContains(response, "За более подробной информацией")
-        self.assertContains(response, "Участник «Большой игры»")
-        self.assertContains(response, "Болельщик")
-        self.assertContains(response, "Конкурс «Счастье в пирогах»")
-        self.assertContains(
-            response,
-            "В каждую команду желательно включить двух детей младше 14 лет",
-        )
-        self.assertNotContains(response, "желательно предусмотреть двух детей")
+        self.assertContains(response, "10:00–14:00")
+        self.assertContains(response, "ФОК «Узловая»")
+        self.assertContains(response, "ул. Тургенева, 21")
+        self.assertContains(response, 'class="falling-leaves"')
+        self.assertNotContains(response, reverse("register"))
         self.assertContains(
             response,
             "Дизайн и разработка Александр Фадеев, al.al.fdv@gmail.com",
         )
         self.assertNotContains(response, "Фото:")
 
-    def test_home_shows_active_participants_in_their_team(self):
+    @override_settings(REGISTRATION_OPEN=False)
+    def test_registration_endpoints_do_not_accept_new_entries(self):
         team = Team.objects.get(number=1)
-        team.registrations.create(
-            full_name="Мария Иванова", participant_type="adult"
-        )
-        team.registrations.create(
-            full_name="Павел Орлов",
-            participant_type="adult",
-            status="cancelled",
+
+        get_response = self.client.get(reverse("register"))
+        post_response = self.client.post(
+            reverse("register"),
+            {
+                "team": team.pk,
+                "full_name": "Поздний Участник",
+                "organization_unit": "ЭФКО",
+                "phone": "+7 900 000-00-00",
+                "activities": ["game"],
+                "participant_type": "adult",
+                "companions": "alone",
+            },
         )
 
-        response = self.client.get(reverse("home"))
-
-        self.assertContains(response, "Уже в команде")
-        self.assertContains(response, "Мария Иванова")
-        self.assertNotContains(response, "Павел Орлов")
+        self.assertRedirects(get_response, reverse("home"))
+        self.assertRedirects(post_response, reverse("home"))
+        self.assertFalse(
+            Registration.objects.filter(full_name="Поздний Участник").exists()
+        )
 
     def test_valid_registration_reserves_a_place(self):
         team = Team.objects.get(number=1)

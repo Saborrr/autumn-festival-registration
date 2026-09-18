@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -72,34 +73,13 @@ def aggregate_attendance(queryset):
 
 
 def home(request):
-    teams = Team.objects.filter(is_active=True).annotate(
-        active_count=Count(
-            "registrations",
-            filter=Q(registrations__status=Registration.Status.ACTIVE),
-        ),
-        child_count=Count(
-            "registrations",
-            filter=Q(
-                registrations__status=Registration.Status.ACTIVE,
-                registrations__participant_type=Registration.ParticipantType.CHILD,
-            ),
-        ),
-    ).prefetch_related(
-        Prefetch(
-            "registrations",
-            queryset=Registration.objects.filter(
-                status=Registration.Status.ACTIVE
-            ).order_by("created_at"),
-            to_attr="active_participants",
-        )
-    )
-    teams = list(teams)
-    for team in teams:
-        team.free_count = max(team.capacity - team.active_count, 0)
-    return render(request, "registrations/home.html", {"teams": teams})
+    return render(request, "registrations/home.html")
 
 
 def register(request):
+    if not settings.REGISTRATION_OPEN:
+        return redirect("home")
+
     selected_format = request.GET.get("format", Registration.ParticipationFormat.GAME)
     if selected_format not in Registration.ParticipationFormat.values:
         selected_format = Registration.ParticipationFormat.GAME

@@ -1,72 +1,64 @@
 {% extends 'registrations/base.html' %}
 {% load static %}
+
+{% block title %}Краски осени — регистрация закрыта{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'registrations/css/closed.css' %}">
+{% endblock %}
+
 {% block content %}
-<section class="hero">
-  <img class="hero-image" src="{% static 'registrations/img/autumn-park.jpg' %}" alt="Осенний парк в золотых и багряных красках">
-  <div class="hero-shade"></div>
-  <div class="hero-content">
-    <p class="eyebrow">Спорт · семья · одна команда</p>
-    <h1>Соберём вместе<br><em>краски осени</em></h1>
-    <p class="hero-lead">Выберите формат участия: играйте в команде, болейте за друзей или представьте домашнюю выпечку.</p>
-    <a class="button button-primary" href="#formats">Выбрать формат <span aria-hidden="true">↓</span></a>
-  </div>
-  <div class="hero-note"><strong>19 сентября · 10:00–14:00</strong><span>ФОК «Узловая», ул. Тургенева, 21</span><small>За подробной информацией обращайтесь к ЛРА</small></div>
-</section>
+<section class="closed-hero" aria-labelledby="closed-title">
+  <img
+    class="closed-hero__image"
+    src="{% static 'registrations/img/autumn-park.jpg' %}"
+    alt=""
+  >
+  <div class="closed-hero__shade"></div>
 
-<section class="intro section-shell" aria-labelledby="how-title">
-  <div>
-    <p class="eyebrow ink">Как участвовать</p>
-    <h2 id="how-title">Три простых шага</h2>
+  <div class="falling-leaves" aria-hidden="true">
+    <i style="--x:4%;--delay:-3s;--duration:16s;--drift:52px;--size:12px;--turn:470deg"></i>
+    <i style="--x:11%;--delay:-12s;--duration:21s;--drift:-44px;--size:17px;--turn:-520deg"></i>
+    <i style="--x:19%;--delay:-7s;--duration:18s;--drift:65px;--size:10px;--turn:610deg"></i>
+    <i style="--x:27%;--delay:-15s;--duration:23s;--drift:-70px;--size:15px;--turn:-430deg"></i>
+    <i style="--x:35%;--delay:-1s;--duration:19s;--drift:38px;--size:11px;--turn:540deg"></i>
+    <i style="--x:43%;--delay:-10s;--duration:22s;--drift:-58px;--size:18px;--turn:-650deg"></i>
+    <i style="--x:51%;--delay:-5s;--duration:17s;--drift:72px;--size:13px;--turn:490deg"></i>
+    <i style="--x:59%;--delay:-17s;--duration:24s;--drift:-36px;--size:10px;--turn:-570deg"></i>
+    <i style="--x:67%;--delay:-8s;--duration:20s;--drift:55px;--size:16px;--turn:620deg"></i>
+    <i style="--x:75%;--delay:-14s;--duration:22s;--drift:-64px;--size:12px;--turn:-460deg"></i>
+    <i style="--x:83%;--delay:-4s;--duration:18s;--drift:42px;--size:14px;--turn:590deg"></i>
+    <i style="--x:91%;--delay:-11s;--duration:21s;--drift:-52px;--size:9px;--turn:-510deg"></i>
+    <i style="--x:96%;--delay:-19s;--duration:25s;--drift:-78px;--size:16px;--turn:660deg"></i>
   </div>
-  <ol class="steps">
-    <li><span>01</span><div><strong>Выберите формат</strong><p>Большая игра, поддержка команд или конкурс пирогов.</p></div></li>
-    <li><span>02</span><div><strong>Заполните данные</strong><p>ФИО и категория участника — взрослый или ребёнок.</p></div></li>
-    <li><span>03</span><div><strong>Готово</strong><p>Место закрепится сразу после отправки формы.</p></div></li>
-  </ol>
-</section>
 
-<section class="formats-section" id="formats" aria-labelledby="formats-title">
-  <div class="section-shell">
-    <div class="section-heading">
-      <div><p class="eyebrow ink">Три способа быть с нами</p><h2 id="formats-title">Выберите формат участия</h2></div>
-      <p>Конкурс пирогов можно совместить с участием в игре или с ролью болельщика. Для участия в игре нужно подобрать команду.</p>
+  <div class="closed-card">
+    <p class="closed-card__eyebrow">Спортивно-семейный праздник</p>
+    <h1 id="closed-title">Краски <em>осени</em></h1>
+    <div class="closed-card__status">
+      <span class="closed-card__status-mark" aria-hidden="true"></span>
+      Регистрация на мероприятие закрыта
     </div>
-    <div class="format-grid">
-      <article class="format-card format-game"><span class="format-icon" aria-hidden="true">🏆</span><h3>Участник «Большой игры»</h3><p>Командный маршрут с испытаниями на меткость, ловкость, скорость и слаженность. В команде 10 человек, включая 2 детей младше 14 лет.</p><a class="team-link" href="#teams">Выбрать команду <span aria-hidden="true">↓</span></a></article>
-      <article class="format-card format-support"><span class="format-icon" aria-hidden="true">📣</span><h3>Болельщик</h3><p>Приходите поддержать команды, участвовать в активностях, фотографироваться, пробовать угощения и создавать настроение.</p><a class="team-link" href="{% url 'register' %}?format=supporter">Зарегистрироваться <span aria-hidden="true">→</span></a></article>
-      <article class="format-card format-pie"><span class="format-icon" aria-hidden="true">🥧</span><h3>Конкурс «Счастье в пирогах»</h3><p>Представьте домашнюю выпечку на осенней ярмарке. К участию приглашаются сотрудники, семьи и команды.</p><a class="team-link" href="{% url 'register' %}?format=pie">Зарегистрироваться <span aria-hidden="true">→</span></a></article>
-    </div>
-  </div>
-</section>
+    <p class="closed-card__message">
+      Спасибо всем, кто присоединился. До встречи на празднике!
+    </p>
 
-<section class="teams-section" id="teams" aria-labelledby="teams-title">
-  <div class="section-shell">
-    <div class="section-heading">
-      <div><p class="eyebrow ink">Участники «Большой игры»</p><h2 id="teams-title">Найдите свою команду</h2></div>
-      <p>В каждую команду желательно включить двух детей младше 14 лет</p>
+    <div class="event-details" aria-label="Дата, время и место мероприятия">
+      <div class="event-detail">
+        <span class="event-detail__icon" aria-hidden="true">19</span>
+        <span><small>Дата</small><strong>19 сентября</strong></span>
+      </div>
+      <div class="event-detail">
+        <span class="event-detail__icon event-detail__icon--clock" aria-hidden="true"></span>
+        <span><small>Время</small><strong>10:00–14:00</strong></span>
+      </div>
+      <div class="event-detail event-detail--wide">
+        <span class="event-detail__icon event-detail__icon--pin" aria-hidden="true"></span>
+        <span><small>Место</small><strong>ФОК «Узловая»</strong><span>ул. Тургенева, 21</span></span>
+      </div>
     </div>
-    <div class="team-grid">
-      {% for team in teams %}
-      <article class="team-card {% if team.active_count >= team.capacity %}is-full{% endif %}">
-        <div class="team-top"><span class="team-number">{{ team.number|stringformat:'02d' }}</span><span class="status-dot"></span></div>
-        <h3>Команда {{ team.number }}</h3>
-        <div class="occupancy"><strong>{{ team.active_count }} из {{ team.capacity }}</strong><span>{% if team.active_count >= team.capacity %}мест нет{% else %}участников{% endif %}</span></div>
-        <div class="progress" role="progressbar" aria-label="Заполненность команды {{ team.number }}" aria-valuenow="{{ team.active_count }}" aria-valuemin="0" aria-valuemax="{{ team.capacity }}"><span style="width:{% widthratio team.active_count team.capacity 100 %}%"></span></div>
-        <div class="team-meta"><span>Детей: {{ team.child_count }}</span><span>Свободно: {{ team.free_count }}</span></div>
-        <div class="team-members">
-          <h4>Уже в команде</h4>
-          {% if team.active_participants %}
-          <ul>{% for participant in team.active_participants %}<li>{{ participant.full_name }}</li>{% endfor %}</ul>
-          {% else %}
-          <p>Пока никто не записался — будьте первым.</p>
-          {% endif %}
-        </div>
-        {% if team.active_count < team.capacity %}
-        <a class="team-link" href="{% url 'register' %}?team={{ team.pk }}">Вступить в команду <span aria-hidden="true">→</span></a>
-        {% else %}<span class="team-link disabled">Команда заполнена</span>{% endif %}
-      </article>
-      {% endfor %}
-    </div>
+
+    <p class="closed-card__note">За подробной информацией обращайтесь к ЛРА</p>
   </div>
 </section>
 {% endblock %}

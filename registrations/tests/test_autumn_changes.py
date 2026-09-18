@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.forms.models import inlineformset_factory
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from openpyxl import load_workbook
 
@@ -184,6 +184,7 @@ class ReverseMigrationDataTests(TransactionTestCase):
         super().tearDown()
 
 
+@override_settings(REGISTRATION_OPEN=True)
 class TeamVisibilityTests(TestCase):
     def test_migration_keeps_all_teams_but_hides_seven_through_ten(self):
         self.assertEqual(Team.objects.count(), 10)
@@ -196,10 +197,8 @@ class TeamVisibilityTests(TestCase):
             [7, 8, 9, 10],
         )
 
-    def test_public_pages_only_offer_active_teams(self):
-        home = self.client.get(reverse("home"))
+    def test_registration_form_only_offers_active_teams(self):
         registration = self.client.get(reverse("register"))
-        self.assertEqual([team.number for team in home.context["teams"]], [1, 2, 3, 4, 5, 6])
         self.assertEqual(
             list(registration.context["form"].fields["team"].queryset.values_list("number", flat=True)),
             [1, 2, 3, 4, 5, 6],
@@ -221,6 +220,7 @@ class TeamVisibilityTests(TestCase):
         self.assertEqual(list(response.context["registrations"]), [historical])
 
 
+@override_settings(REGISTRATION_OPEN=True)
 class StructuredCompanionChildrenTests(TestCase):
     def test_form_renders_repeatable_age_controls_not_legacy_details(self):
         response = self.client.get(reverse("register"))
